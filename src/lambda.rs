@@ -1,8 +1,31 @@
+use std::fmt::Display;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Lambda {
     Variable(String),
     Function(String, Box<Lambda>),
     Application(Box<Lambda>, Box<Lambda>),
+}
+impl Display for Lambda {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Lambda::Variable(name) => write!(f, "{name}"),
+            Lambda::Function(param, arg) => write!(f, "\\{param}.{arg}"),
+            Lambda::Application(lhs, rhs) => {
+                match **lhs {
+                    Lambda::Application(_, _) | Lambda::Function(_, _) => write!(f, "({lhs})")?,
+                    _ => write!(f, "{lhs}")?,
+                };
+
+                write!(f, " ")?;
+
+                match **rhs {
+                    Lambda::Application(_, _) | Lambda::Function(_, _) => write!(f, "({rhs})"),
+                    _ => write!(f, "{rhs}"),
+                }
+            }
+        }
+    }
 }
 impl Lambda {
     pub fn variable(name: &str) -> Self {

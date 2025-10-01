@@ -1,3 +1,8 @@
+use crate::{
+    lambda::Lambda,
+    parsing::{parse, tokens::tokenize},
+};
+
 #[test]
 #[allow(non_snake_case)]
 fn test_true() {
@@ -12,4 +17,18 @@ fn test_false() {
     let F = Lambda::function(vec!["x", "y"], Lambda::variable("y"));
     let result = Lambda::application(F, vec![Lambda::variable("x"), Lambda::variable("y")]);
     assert_eq!(result.reduce(), Lambda::variable("y"));
+}
+
+#[test]
+fn test_application_order() {
+    let expr = Lambda::Application(
+        Box::new(Lambda::Application(
+            Box::new(Lambda::Variable("a".into())),
+            Box::new(Lambda::Variable("b".into())),
+        )),
+        Box::new(Lambda::Variable("c".into())),
+    );
+
+    let expr2 = parse(tokenize("(a b) c"));
+    assert_eq!(expr, expr2);
 }
