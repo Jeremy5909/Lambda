@@ -1,26 +1,18 @@
-use crate::lambda::Lambda;
+use crate::{
+    lambda::Lambda,
+    parsing::{parse, tokens::tokenize},
+};
 
 mod lambda;
+mod parsing;
+#[cfg(test)]
+mod tests;
 
 fn main() {
-    let T = Lambda::function(vec!["x", "y"], Lambda::variable("x"));
-    let F = Lambda::function(vec!["x", "y"], Lambda::variable("y"));
-    let result = Lambda::application(F, vec![Lambda::variable("x"), Lambda::variable("y")]);
-    println!("{:?}", result.reduce());
-}
+    let one = parse(tokenize(r"(\f x.f x)"));
+    let two = parse(tokenize(r"(\f x.f (f x))"));
+    let successor = parse(tokenize(r"(\n f x.f (n f x))"));
 
-#[test]
-#[allow(non_snake_case)]
-fn test_true() {
-    let T = Lambda::function(vec!["x", "y"], Lambda::variable("x"));
-    let result = Lambda::application(T, vec![Lambda::variable("x"), Lambda::variable("y")]);
-    assert_eq!(result.reduce(), Lambda::variable("x"));
-}
-
-#[test]
-#[allow(non_snake_case)]
-fn test_false() {
-    let F = Lambda::function(vec!["x", "y"], Lambda::variable("y"));
-    let result = Lambda::application(F, vec![Lambda::variable("x"), Lambda::variable("y")]);
-    assert_eq!(result.reduce(), Lambda::variable("y"));
+    let result = Lambda::application(successor, vec![two]);
+    println!("{:#?}", result.reduce());
 }
