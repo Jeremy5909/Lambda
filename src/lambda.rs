@@ -66,7 +66,10 @@ impl Lambda {
                 let rhs: Vec<_> = tokens.collect();
                 let rhs = Self::parse_tokens(rhs, Some(env));
 
-                env.insert(name, rhs.unwrap());
+                env.insert(
+                    name.clone(),
+                    rhs.expect(format!("Missing definition for {}", name).as_str()),
+                );
             }
         }
     }
