@@ -5,6 +5,7 @@ pub enum Token {
     Lambda,
     Dot,
     Var(String),
+    Define,
 }
 
 pub fn tokenize(input: impl ToString) -> Vec<Token> {
@@ -18,6 +19,13 @@ pub fn tokenize(input: impl ToString) -> Vec<Token> {
             ')' => tokens.push(Token::RParen),
             '.' => tokens.push(Token::Dot),
             '\\' => tokens.push(Token::Lambda),
+            ':' => {
+                if chars.peek() == Some(&'=') {
+                    tokens.push(Token::Define)
+                } else {
+                    continue;
+                }
+            }
             next if next.is_whitespace() => {}
             _ => {
                 let mut var = next.to_string();
@@ -26,6 +34,7 @@ pub fn tokenize(input: impl ToString) -> Vec<Token> {
                         || next == ')'
                         || next == '\\'
                         || next == '.'
+                        || next == ':'
                         || next.is_whitespace()
                     {
                         break;

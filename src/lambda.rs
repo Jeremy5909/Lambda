@@ -1,6 +1,6 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
-use crate::tokens::{Token, tokenize};
+use crate::tokens::Token;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Lambda {
@@ -57,17 +57,39 @@ impl Lambda {
         vars
     }
 
-    pub fn from_string(string: impl ToString) -> Option<Lambda> {
-        Self::parse_tokens(tokenize(string))
+    pub fn parse_definition(
+        tokens: impl IntoIterator<Item = Token>,
+        env: &mut HashMap<String, Lambda>,
+    ) {
+        let mut tokens = tokens.into_iter();
+        if let Some(Token::Var(name)) = tokens.next() {
+            if let Some(Token::Define) = tokens.next() {
+                let rhs: Vec<_> = tokens.collect();
+                let rhs = Self::parse_tokens(rhs, Some(env));
+
+                env.insert(name, rhs.unwrap());
+            }
+        }
     }
-    fn parse_tokens(tokens: impl IntoIterator<Item = Token>) -> Option<Lambda> {
+    pub fn parse_tokens(
+        tokens: impl IntoIterator<Item = Token>,
+        env: Option<&HashMap<String, Lambda>>,
+    ) -> Option<Lambda> {
         let tokens = tokens.into_iter();
         let mut lambdas = Vec::new();
 
         let mut iter = tokens.into_iter();
         while let Some(token) = iter.next() {
             match token {
-                Token::Var(name) => lambdas.push(Lambda::Variable(name.clone())),
+                Token::Var(name) => {
+                    if let Some(env) = env {
+                        if let Some(value) = env.get(&name) {
+                            lambdas.push(value.clone());
+                            continue;
+                        }
+                    }
+                    lambdas.push(Lambda::Variable(name))
+                }
                 Token::LParen => {
                     // Parse everything inside parentheses
                     let mut inner_tokens = Vec::new();
@@ -86,7 +108,7 @@ impl Lambda {
                         inner_tokens.push(tok);
                     }
 
-                    lambdas.push(Self::parse_tokens(inner_tokens)?);
+                    lambdas.push(Self::parse_tokens(inner_tokens, env)?);
                 }
                 Token::Lambda => {
                     let mut params_tokens = Vec::new();
@@ -107,7 +129,7 @@ impl Lambda {
                         .collect();
 
                     let body_tokens: Vec<_> = iter.collect();
-                    let body = Self::parse_tokens(body_tokens);
+                    let body = Self::parse_tokens(body_tokens, env);
 
                     return Some(Lambda::function(params_names, body?));
                 }
