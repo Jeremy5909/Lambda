@@ -1,32 +1,44 @@
 use std::{
     collections::HashMap,
+    fs,
     io::{Write, stdin, stdout},
 };
 
-use crate::{lambda::Lambda, tokens::tokenize};
+use crate::{
+    lambda::{Environment, Lambda},
+    tokens::tokenize,
+};
 
 mod lambda;
-#[cfg(test)]
-mod tests;
 mod tokens;
 
+#[cfg(test)]
+mod tests;
+
+fn run(input: &str, env: &mut Environment) {
+    let tokens = tokenize(input);
+
+    Lambda::parse_definition(tokens.clone(), env);
+
+    Lambda::parse_tokens(tokens, Some(&env)).inspect(|l| println!("{}", l.reduce()));
+}
+
 fn main() {
-    let mut environment: HashMap<String, Lambda> = HashMap::new();
+    let mut environment = HashMap::new();
 
-    loop {
-        let mut input = String::new();
-        print!("> ");
-        stdout().flush().unwrap();
-        stdin().read_line(&mut input).unwrap();
-        let input = input.trim();
-        let tokens = tokenize(input);
-
-        Lambda::parse_definition(tokens.clone(), &mut environment);
-
-        let Some(lambda) = Lambda::parse_tokens(tokens, Some(&environment)) else {
-            continue;
-        };
-
-        println!("{}", lambda.reduce());
+    if let Some(path) = std::env::args().skip(1).next() {
+        let input = fs::read_to_string(path).expect("File not found");
+        for line in input.lines() {
+            run(line, &mut environment);
+        }
+    } else {
+        loop {
+            let mut input = String::new();
+            print!("> ");
+            stdout().flush().unwrap();
+            stdin().read_line(&mut input).unwrap();
+            let input = input.trim();
+            run(input, &mut environment);
+        }
     }
 }

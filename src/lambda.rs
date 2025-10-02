@@ -2,6 +2,8 @@ use std::{collections::HashMap, fmt::Display};
 
 use crate::tokens::Token;
 
+pub type Environment = HashMap<String, Lambda>;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Lambda {
     Variable(String),
@@ -57,10 +59,7 @@ impl Lambda {
         vars
     }
 
-    pub fn parse_definition(
-        tokens: impl IntoIterator<Item = Token>,
-        env: &mut HashMap<String, Lambda>,
-    ) {
+    pub fn parse_definition(tokens: impl IntoIterator<Item = Token>, env: &mut Environment) {
         let mut tokens = tokens.into_iter();
         if let Some(Token::Var(name)) = tokens.next() {
             if let Some(Token::Define) = tokens.next() {
@@ -73,7 +72,7 @@ impl Lambda {
     }
     pub fn parse_tokens(
         tokens: impl IntoIterator<Item = Token>,
-        env: Option<&HashMap<String, Lambda>>,
+        env: Option<&Environment>,
     ) -> Option<Lambda> {
         let tokens = tokens.into_iter();
         let mut lambdas = Vec::new();
