@@ -1,18 +1,24 @@
-use crate::{
-    lambda::Lambda,
-    parsing::{parse, tokens::tokenize},
-};
+use std::io::{Write, stdin, stdout};
+
+use crate::lambda::Lambda;
 
 mod lambda;
-mod parsing;
 #[cfg(test)]
 mod tests;
+mod tokens;
 
 fn main() {
-    let one = parse(tokenize(r"(\f x.f x)"));
-    let two = parse(tokenize(r"(\f x.f (f x))"));
-    let successor = parse(tokenize(r"(\n f x.f (n f x))"));
+    loop {
+        let mut input = String::new();
+        print!("> ");
+        stdout().flush().unwrap();
+        stdin().read_line(&mut input).unwrap();
+        let input = input.trim();
 
-    let result = Lambda::application(successor, vec![two]);
-    println!("{:#?}", result.reduce());
+        let Some(lambda) = Lambda::from_string(input) else {
+            continue;
+        };
+
+        println!("{}", lambda.reduce());
+    }
 }

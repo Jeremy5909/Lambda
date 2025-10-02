@@ -1,11 +1,14 @@
 use std::fmt::Display;
 
+use crate::tokens::{Token, tokenize};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Lambda {
     Variable(String),
     Function(String, Box<Lambda>),
     Application(Box<Lambda>, Box<Lambda>),
 }
+
 impl Display for Lambda {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -27,6 +30,7 @@ impl Display for Lambda {
         }
     }
 }
+
 impl Lambda {
     pub fn variable(name: &str) -> Self {
         Self::Variable(name.to_owned())
@@ -40,6 +44,82 @@ impl Lambda {
         args.into_iter().fold(func, |acc, arg| {
             Lambda::Application(Box::new(acc), Box::new(arg))
         })
+    }
+
+    pub fn parse_variables(tokens: Vec<Token>) -> Vec<Lambda> {
+        let mut vars = Vec::new();
+        for token in tokens {
+            match token {
+                Token::Var(name) => vars.push(Lambda::Variable(name)),
+                _ => {}
+            }
+        }
+        vars
+    }
+
+    pub fn from_string(string: impl ToString) -> Option<Lambda> {
+        Self::parse_tokens(tokenize(string))
+    }
+    fn parse_tokens(tokens: impl IntoIterator<Item = Token>) -> Option<Lambda> {
+        let tokens = tokens.into_iter();
+        let mut lambdas = Vec::new();
+
+        let mut iter = tokens.into_iter();
+        while let Some(token) = iter.next() {
+            match token {
+                Token::Var(name) => lambdas.push(Lambda::Variable(name.clone())),
+                Token::LParen => {
+                    // Parse everything inside parentheses
+                    let mut inner_tokens = Vec::new();
+                    let mut depth = 1;
+                    while let Some(tok) = iter.next() {
+                        match tok {
+                            Token::LParen => depth += 1,
+                            Token::RParen => {
+                                depth -= 1;
+                                if depth == 0 {
+                                    break;
+                                }
+                            }
+                            _ => {}
+                        }
+                        inner_tokens.push(tok);
+                    }
+
+                    lambdas.push(Self::parse_tokens(inner_tokens)?);
+                }
+                Token::Lambda => {
+                    let mut params_tokens = Vec::new();
+                    while let Some(tok) = iter.next() {
+                        if tok == Token::Dot {
+                            break;
+                        }
+                        params_tokens.push(tok);
+                    }
+
+                    let params = Self::parse_variables(params_tokens);
+                    let params_names: Vec<_> = params
+                        .iter()
+                        .map(|p| match p {
+                            Lambda::Variable(name) => name.as_str(),
+                            _ => panic!(),
+                        })
+                        .collect();
+
+                    let body_tokens: Vec<_> = iter.collect();
+                    let body = Self::parse_tokens(body_tokens);
+
+                    return Some(Lambda::function(params_names, body?));
+                }
+                _ => {}
+            }
+        }
+        let mut iter = lambdas.into_iter();
+        let mut result = iter.next()?;
+        for e in iter {
+            result = Lambda::Application(Box::new(result), Box::new(e));
+        }
+        Some(result)
     }
 
     fn substitute(&self, var: &str, value: &Lambda) -> Self {

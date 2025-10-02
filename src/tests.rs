@@ -1,7 +1,4 @@
-use crate::{
-    lambda::Lambda,
-    parsing::{parse, tokens::tokenize},
-};
+use crate::lambda::Lambda;
 
 #[test]
 #[allow(non_snake_case)]
@@ -29,6 +26,6 @@ fn test_application_order() {
         Box::new(Lambda::Variable("c".into())),
     );
 
-    let expr2 = parse(tokenize("(a b) c"));
+    let expr2 = Lambda::from_string("(a b) c").unwrap();
     assert_eq!(expr, expr2);
 }
